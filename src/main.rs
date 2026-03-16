@@ -1,8 +1,11 @@
 mod scanner;
+mod parser;
 
+use std::fs;
 use clap::{Parser, Subcommand};
 use anyhow::Result;
 use scanner::get_files_to_scan;
+use parser::parse_javascript;
 
 #[derive(Parser,Debug)]
 #[command(author, version, about, long_about = None)]
@@ -35,7 +38,25 @@ fn main() -> Result<()> {
             println!("Found {} files to scan!", files.len());
             
             for file in files.into_iter().take(5) {
-                println!("Scanning: {}", file.display());
+                if let Some(ext) = file.extension() {
+                    if ext == "js" {
+                        println!("Scanning file: {}", file.display());
+                        
+                        match fs::read_to_string(&file) {
+                            Ok(content) => {
+                                if let Some(tree) = parse_javascript(&content) {
+                                    let root_node = tree.root_node();
+                                    println!("AST structure:\n{}\n", root_node.to_sexp())
+                                } else {
+                                    println!("Failed to parse file: {}", file.display());
+                                }
+                            } 
+                            Err(e) => {
+                                println!("Failed to read file: {}", e);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
