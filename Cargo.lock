@@ -438,6 +438,7 @@ dependencies = [
  "anyhow",
  "clap",
  "ignore",
+ "streaming-iterator",
  "tree-sitter",
  "tree-sitter-javascript",
  "tree-sitter-python",
