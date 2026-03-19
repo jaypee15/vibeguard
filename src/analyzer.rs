@@ -1,7 +1,7 @@
-use std::path::PathBuf;
-use tree_sitter::{Query, QueryCursor,Node};
-use streaming_iterator::StreamingIterator;
 use crate::rule_engine::Rule;
+use std::path::PathBuf;
+use streaming_iterator::StreamingIterator;
+use tree_sitter::{Node, Query, QueryCursor};
 
 #[derive(Debug)]
 pub struct Issue {
@@ -12,9 +12,14 @@ pub struct Issue {
     pub message: String,
 }
 
-pub fn analyze_javascript(source_code: &str, tree: &tree_sitter::Tree, file_path: &PathBuf, rules: &[Rule]) -> Vec<Issue> {
+pub fn analyze_javascript(
+    source_code: &str,
+    tree: &tree_sitter::Tree,
+    file_path: &PathBuf,
+    rules: &[Rule],
+) -> Vec<Issue> {
     let mut issues = Vec::new();
-    
+
     let language = tree_sitter_javascript::LANGUAGE.into();
 
     for rule in rules {
@@ -30,23 +35,21 @@ pub fn analyze_javascript(source_code: &str, tree: &tree_sitter::Tree, file_path
         while let Some(m) = matches.next() {
             for capture in m.captures {
                 let capture_name = query.capture_names()[capture.index as usize];
-                
+
                 if capture_name == "issue" {
                     let node: Node = capture.node;
-                    
+
                     issues.push(Issue {
-                        rule_id: "insecure-eval". to_string(),
+                        rule_id: "insecure-eval".to_string(),
                         severity: rule.severity.clone(),
                         file: file_path.clone(),
                         line: node.start_position().row + 1,
                         message: rule.message.clone(),
                     });
                 }
-                
             }
         }
     }
-    
-    
+
     issues
 }

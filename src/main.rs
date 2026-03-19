@@ -1,29 +1,30 @@
-mod scanner;
-mod parser;
 mod analyzer;
+mod parser;
 mod rule_engine;
+mod scanner;
 
-use std::fs;
-use clap::{Parser, Subcommand};
+use analyzer::{Issue, analyze_javascript};
 use anyhow::Result;
-use scanner::get_files_to_scan;
+use clap::{Parser, Subcommand};
 use parser::parse_javascript;
-use analyzer::{analyze_javascript, Issue};
+use rayon::prelude::*;
 use rule_engine::load_rules;
+use scanner::get_files_to_scan;
+use std::fs;
 
-#[derive(Parser,Debug)]
+#[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
 }
 
-#[derive(Subcommand,Debug)]
+#[derive(Subcommand, Debug)]
 enum Commands {
     Scan {
         #[arg(default_value = ".")]
         path: String,
-        
+
         #[arg(short, long)]
         json: bool,
     },
@@ -31,51 +32,59 @@ enum Commands {
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
-    
+
     match &cli.command {
         Commands::Scan { path, json } => {
             println!("Vibeguard is preparing to scan...");
             println!("Target path: {}", path);
-            
-            println!("Loading rules...");
+
             let rules = load_rules("rules/javascript.yaml");
             println!("Loaded {} rules.", rules.len());
-            
+
             let files = get_files_to_scan(path);
-            
             println!("Found {} files to scan!", files.len());
-            
-            for file in files.into_iter().take(5) {
-                if let Some(ext) = file.extension() {
-                    if ext == "js" {
-                        println!("Scanning file: {}", file.display());
-                        
-                        match fs::read_to_string(&file) {
-                            Ok(content) => {
+
+            let start_time = std::time::Instant::now();
+
+            let all_issues: Vec<Issue> = files
+                .par_iter()
+                .flat_map(|file| {
+                    let mut file_issues = Vec::new();
+
+                    if let Some(ext) = file.extension() {
+                        if ext == "js" {
+                            if let Ok(content) = fs::read_to_string(file) {
                                 if let Some(tree) = parse_javascript(&content) {
-                                    let issues = analyze_javascript(&content, &tree, &file, &rules);
-                                    
-                                    if !issues.is_empty() {
-                                        println!("\n🚨 Found {} issues in {}", issues.len(), file.display());
-                                        for issue in issues {
-                                            println!("[{}] Line {} ({}): {}", issue.severity.to_uppercase(),issue.line, issue.rule_id, issue.message);
-                                        }
-                                    } else {
-                                        println!("No issues found in file: {}", file.display());
-                                    }
-                                } else {
-                                    println!("Failed to parse file: {}", file.display());
+                                    file_issues = analyze_javascript(&content, &tree, file, &rules);
                                 }
-                            } 
-                            Err(e) => {
-                                println!("Failed to read file: {}", e);
                             }
                         }
                     }
+                    file_issues
+                })
+                .collect();
+
+            let duration = start_time.elapsed();
+
+            println!("\n=== SCAN COMPLETE IN {:?} ===", duration);
+
+            if all_issues.is_empty() {
+                println!("✅No vulnerabilities found.");
+            } else {
+                println!("\n🚨 Found {} total issues:\n", all_issues.len());
+
+                for issue in all_issues {
+                    println!(
+                        "[{}] {} (Line {}) {}",
+                        issue.severity,
+                        issue.file.display(),
+                        issue.line,
+                        issue.message
+                    );
                 }
             }
         }
     }
-    
+
     Ok(())
 }

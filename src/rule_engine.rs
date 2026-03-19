@@ -15,8 +15,10 @@ pub struct RuleConfig {
 }
 
 pub fn load_rules(file_path: &str) -> Vec<Rule> {
-    let yaml_content = fs::read_to_string(file_path).expect(&format!("Failed to read rules file at {}", file_path));
-    let config: RuleConfig = serde_yaml::from_str(&yaml_content).expect("Failed to parse rules file");
-    
+    let yaml_content = fs::read_to_string(file_path)
+        .expect(&format!("Failed to read rules file at {}", file_path));
+    let config: RuleConfig =
+        serde_yaml::from_str(&yaml_content).expect("Failed to parse rules file");
+
     config.rules
 }
