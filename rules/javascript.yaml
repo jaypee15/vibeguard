@@ -1,0 +1,19 @@
+rules:
+   - id: "insecure-eval"
+     severity: "High"
+     message: "Found usage of `eval()`. This can lead to Remote code execution."
+     query: | 
+         (call_expression
+             function: (identifier) @func_name
+             (#eq? @func_name "eval")
+         ) @issue
+          
+   - id: "hardcoded-jwt-secret"
+     severity: "Critical"
+     message: "Hardcoded JWT secret detected. Secrets should be passed via environment variables."
+     query: |
+        (variable_declarator
+              name: (identifier) @var_name
+              (#match? @var_name "(?i).*secret.*")
+              value: (string)
+        ) @issue

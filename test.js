@@ -1,2 +1,2 @@
-const apiKey = "sk_live_123456789";
+const jwtSecret = "super_secret_key_123";
 eval("console.log('hello')");

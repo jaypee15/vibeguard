@@ -1,6 +1,7 @@
 mod scanner;
 mod parser;
 mod analyzer;
+mod rule_engine;
 
 use std::fs;
 use clap::{Parser, Subcommand};
@@ -8,6 +9,7 @@ use anyhow::Result;
 use scanner::get_files_to_scan;
 use parser::parse_javascript;
 use analyzer::{analyze_javascript, Issue};
+use rule_engine::load_rules;
 
 #[derive(Parser,Debug)]
 #[command(author, version, about, long_about = None)]
@@ -35,6 +37,10 @@ fn main() -> Result<()> {
             println!("Vibeguard is preparing to scan...");
             println!("Target path: {}", path);
             
+            println!("Loading rules...");
+            let rules = load_rules("rules/javascript.yaml");
+            println!("Loaded {} rules.", rules.len());
+            
             let files = get_files_to_scan(path);
             
             println!("Found {} files to scan!", files.len());
@@ -47,12 +53,12 @@ fn main() -> Result<()> {
                         match fs::read_to_string(&file) {
                             Ok(content) => {
                                 if let Some(tree) = parse_javascript(&content) {
-                                    let issues = analyze_javascript(&content, &tree, &file);
+                                    let issues = analyze_javascript(&content, &tree, &file, &rules);
                                     
                                     if !issues.is_empty() {
                                         println!("\n🚨 Found {} issues in {}", issues.len(), file.display());
                                         for issue in issues {
-                                            println!("[Line {}] {}: {}", issue.line, issue.rule_id, issue.message);
+                                            println!("[{}] Line {} ({}): {}", issue.severity.to_uppercase(),issue.line, issue.rule_id, issue.message);
                                         }
                                     } else {
                                         println!("No issues found in file: {}", file.display());
