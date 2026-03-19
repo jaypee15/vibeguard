@@ -1,9 +1,10 @@
 use crate::rule_engine::Rule;
 use std::path::PathBuf;
+use serde::Serialize;
 use streaming_iterator::StreamingIterator;
 use tree_sitter::{Node, Query, QueryCursor};
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Issue {
     pub rule_id: String,
     pub severity: String,

@@ -492,6 +492,7 @@ dependencies = [
  "ignore",
  "rayon",
  "serde",
+ "serde_json",
  "serde_yaml",
  "streaming-iterator",
  "tree-sitter",

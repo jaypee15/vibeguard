@@ -11,6 +11,7 @@ use rayon::prelude::*;
 use rule_engine::load_rules;
 use scanner::get_files_to_scan;
 use std::fs;
+use serde_json;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -65,24 +66,30 @@ fn main() -> Result<()> {
                 .collect();
 
             let duration = start_time.elapsed();
-
-            println!("\n=== SCAN COMPLETE IN {:?} ===", duration);
-
-            if all_issues.is_empty() {
-                println!("✅No vulnerabilities found.");
+            if *json{
+                let json_output = serde_json::to_string_pretty(&all_issues).expect("Failed to serialize to JSON");
+                println!("{}", json_output);
             } else {
-                println!("\n🚨 Found {} total issues:\n", all_issues.len());
-
-                for issue in all_issues {
-                    println!(
-                        "[{}] {} (Line {}) {}",
-                        issue.severity,
-                        issue.file.display(),
-                        issue.line,
-                        issue.message
-                    );
+                println!("\n=== SCAN COMPLETE IN {:?} ===", duration);
+                
+                if all_issues.is_empty() {
+                    println!("✅No vulnerabilities found.");
+                } else {
+                    println!("\n🚨 Found {} total issues:\n", all_issues.len());
+    
+                    for issue in all_issues {
+                        println!(
+                            "[{}] {} (Line {}) {}",
+                            issue.severity,
+                            issue.file.display(),
+                            issue.line,
+                            issue.message
+                        );
+                    }
                 }
             }
+
+           
         }
     }
 
