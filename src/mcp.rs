@@ -1,5 +1,5 @@
+use serde_json::{Value, json};
 use std::io::{self, BufRead, Write};
-use serde_json::{json, Value};
 
 /// Start the MCP Server loop, listening on STDIN and replying on STDOUT
 pub fn run_mcp_server() {
@@ -18,14 +18,12 @@ pub fn run_mcp_server() {
         }
 
         if let Ok(request) = serde_json::from_str::<Value>(&line) {
-            
             let id = request.get("id").cloned().unwrap_or(json!(null));
             let method = request.get("method").and_then(|m| m.as_str()).unwrap_or("");
 
             eprintln!("Received MCP Request: {}", method);
 
             let response = match method {
-
                 "initialize" => {
                     json!({
                         "jsonrpc": "2.0",
@@ -37,12 +35,11 @@ pub fn run_mcp_server() {
                                 "version": "1.0.0"
                             },
                             "capabilities": {
-                                "tools": {} 
+                                "tools": {}
                             }
                         }
                     })
                 }
-
 
                 "tools/list" => {
                     json!({
@@ -79,7 +76,31 @@ pub fn run_mcp_server() {
                     eprintln!("AI requested scan of path: {}", target_path);
 
                     // For now, we return a mock response to prove the wiring works.
-                    let mock_result = format!("Scan complete for {}. Found 0 issues (Mock)", target_path);
+                    let all_issues = crate::scanner::run_scan(target_path);
+
+                    let mut result_text =
+                        format!("Scan complete for directory: `{}`\n\n", target_path);
+
+                    if all_issues.is_empty() {
+                        result_text
+                            .push_str("No vulnerabilities found! The codebase looks secure.");
+                    } else {
+                        result_text.push_str(&format!(
+                            "Found **{}** securityissues:\n\n",
+                            all_issues.len()
+                        ));
+                        for issue in all_issues {
+                            result_text.push_str(&format!(
+                                "- **[{}]** in `{}` (Line {}): {}\n",
+                                issue.severity.to_uppercase(),
+                                issue.file.display(),
+                                issue.line,
+                                issue.message
+                            ));
+                        }
+                        result_text
+                            .push_str("\nPlease review these issues and fix them immediately.");
+                    }
 
                     json!({
                         "jsonrpc": "2.0",
@@ -88,14 +109,14 @@ pub fn run_mcp_server() {
                             "content":[
                                 {
                                     "type": "text",
-                                    "text": mock_result
+                                    "text": result_text
                                 }
                             ]
                         }
                     })
                 }
 
-                // We ignore notifications (like "notifications/initialized")
+                // Ignore notifications (like "notifications/initialized")
                 _ => {
                     if id.is_null() {
                         continue; // It's a notification, no response needed

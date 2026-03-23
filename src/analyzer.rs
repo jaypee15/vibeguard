@@ -1,6 +1,6 @@
 use crate::rule_engine::Rule;
-use std::path::PathBuf;
 use serde::Serialize;
+use std::path::PathBuf;
 use streaming_iterator::StreamingIterator;
 use tree_sitter::{Node, Query, QueryCursor};
 
