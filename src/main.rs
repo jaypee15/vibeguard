@@ -2,6 +2,7 @@ mod analyzer;
 mod parser;
 mod rule_engine;
 mod scanner;
+mod mcp;
 
 use analyzer::{Issue, analyze_javascript};
 use anyhow::Result;
@@ -12,6 +13,7 @@ use rule_engine::load_rules;
 use scanner::get_files_to_scan;
 use std::fs;
 use serde_json;
+use mcp::run_mcp_server;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -29,6 +31,7 @@ enum Commands {
         #[arg(short, long)]
         json: bool,
     },
+    Mcp,
 }
 
 fn main() -> Result<()> {
@@ -90,6 +93,9 @@ fn main() -> Result<()> {
             }
 
            
+        }
+        Commands::Mcp => {
+            run_mcp_server();
         }
     }
 
