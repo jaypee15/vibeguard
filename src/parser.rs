@@ -1,9 +1,9 @@
-use tree_sitter::{Parser, Tree};
+use tree_sitter::{Language, Parser, Tree};
 
-pub fn parse_javascript(source_code: &str) -> Option<Tree> {
+pub fn parse_code(source_code: &str, language: Language) -> Option<Tree> {
     let mut parser = Parser::new();
-    parser
-        .set_language(&tree_sitter_javascript::LANGUAGE.into())
-        .expect("Error loading javascript grammer");
+    if parser.set_language(&language).is_err() {
+        return None;
+    }
     parser.parse(source_code, None)
 }

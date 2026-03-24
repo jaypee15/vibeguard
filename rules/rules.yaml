@@ -1,5 +1,6 @@
 rules:
    - id: "insecure-eval"
+     language: "javascript"
      severity: "High"
      message: "Found usage of `eval()`. This can lead to Remote code execution."
      query: | 
@@ -9,6 +10,7 @@ rules:
          ) @issue
           
    - id: "hardcoded-jwt-secret"
+     language: "javascript"
      severity: "Critical"
      message: "Hardcoded JWT secret detected. Secrets should be passed via environment variables."
      query: |
@@ -16,4 +18,14 @@ rules:
               name: (identifier) @var_name
               (#match? @var_name "(?i).*secret.*")
               value: (string)
+        ) @issue
+        
+   - id: "insecure-eval-ts"
+     language: "typescript"
+     severity: "High"
+     message: "Found usage of `eval()` in TypeScript."
+     query: |
+        (call_expression
+            function: (identifier) @func_name
+            (#eq? @func_name "eval")
         ) @issue

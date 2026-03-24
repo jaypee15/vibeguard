@@ -2,7 +2,7 @@ use crate::rule_engine::Rule;
 use serde::Serialize;
 use std::path::PathBuf;
 use streaming_iterator::StreamingIterator;
-use tree_sitter::{Node, Query, QueryCursor};
+use tree_sitter::{Language, Node, Query, QueryCursor};
 
 #[derive(Debug, Serialize)]
 pub struct Issue {
@@ -13,15 +13,14 @@ pub struct Issue {
     pub message: String,
 }
 
-pub fn analyze_javascript(
+pub fn analyze_code(
     source_code: &str,
     tree: &tree_sitter::Tree,
     file_path: &PathBuf,
     rules: &[Rule],
+    language: Language,
 ) -> Vec<Issue> {
     let mut issues = Vec::new();
-
-    let language = tree_sitter_javascript::LANGUAGE.into();
 
     for rule in rules {
         let query = match Query::new(&language, &rule.query) {
