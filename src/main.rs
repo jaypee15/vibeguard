@@ -3,6 +3,7 @@ mod mcp;
 mod parser;
 mod rule_engine;
 mod scanner;
+mod taint;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};

@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use crate::analyzer::{Issue, analyze_code};
 use crate::parser::parse_code;
 use crate::rule_engine::load_rules;
+use crate::taint::check_sql_taint;
 
 pub fn get_files_to_scan(dir: &str) -> Vec<PathBuf> {
     let walker = WalkBuilder::new(dir).build();
@@ -55,7 +56,9 @@ pub fn run_scan(path: &str) -> Vec<Issue> {
                     if let Ok(content) = fs::read_to_string(file) {
                         if let Some(tree) = parse_code(&content, ts_language.clone()) {
                             file_issues =
-                                analyze_code(&content, &tree, file, &applicable_rules, ts_language)
+                                analyze_code(&content, &tree, file, &applicable_rules, ts_language.clone());
+                            let taint_issues = check_sql_taint(&content, &tree, file, ts_language);
+                            file_issues.extend(taint_issues);
                         }
                     }
                 }
