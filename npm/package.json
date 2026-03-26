@@ -1,0 +1,14 @@
+{
+  "name": "vibeguard-cli",
+  "version": "1.0.0",
+  "description": "AI-first security scanner for vibe coders",
+  "main": "index.js",
+  "bin": {
+    "vibeguard": "./bin/vibeguard.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jaypee15",
+  "license": "MIT"
+}

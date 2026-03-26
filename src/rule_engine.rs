@@ -3,7 +3,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize, Clone)]
 pub struct Rule {
     pub id: String,
-    pub language: String,
+    pub languages: Vec<String>,
     pub severity: String,
     pub message: String,
     pub query: String,

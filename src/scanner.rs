@@ -42,21 +42,29 @@ pub fn run_scan(path: &str) -> Vec<Issue> {
             if let Some(ext) = file.extension().and_then(|e| e.to_str()) {
                 let (lang_name, ts_language): (&str, tree_sitter::Language) = match ext {
                     "js" | "jsx" => ("javascript", tree_sitter_javascript::LANGUAGE.into()),
-                    "ts" => ("typescript", tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()),
+                    "ts" => (
+                        "typescript",
+                        tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
+                    ),
                     "tsx" => ("typescript", tree_sitter_typescript::LANGUAGE_TSX.into()),
                     _ => return Vec::new(),
                 };
                 let applicable_rules: Vec<_> = all_rules
                     .iter()
-                    .filter(|r| r.language == lang_name)
+                    .filter(|r| r.languages.iter().any(|l| l == lang_name))
                     .cloned()
                     .collect();
 
                 if !applicable_rules.is_empty() {
                     if let Ok(content) = fs::read_to_string(file) {
                         if let Some(tree) = parse_code(&content, ts_language.clone()) {
-                            file_issues =
-                                analyze_code(&content, &tree, file, &applicable_rules, ts_language.clone());
+                            file_issues = analyze_code(
+                                &content,
+                                &tree,
+                                file,
+                                &applicable_rules,
+                                ts_language.clone(),
+                            );
                             let taint_issues = check_sql_taint(&content, &tree, file, ts_language);
                             file_issues.extend(taint_issues);
                         }

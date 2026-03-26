@@ -1,31 +1,68 @@
 rules:
-   - id: "insecure-eval"
-     language: "javascript"
-     severity: "High"
-     message: "Found usage of `eval()`. This can lead to Remote code execution."
-     query: | 
-         (call_expression
-             function: (identifier) @func_name
-             (#eq? @func_name "eval")
-         ) @issue
-          
-   - id: "hardcoded-jwt-secret"
-     language: "javascript"
-     severity: "Critical"
-     message: "Hardcoded JWT secret detected. Secrets should be passed via environment variables."
-     query: |
-        (variable_declarator
-              name: (identifier) @var_name
-              (#match? @var_name "(?i).*secret.*")
-              value: (string)
-        ) @issue
-        
-   - id: "insecure-eval-ts"
-     language: "typescript"
-     severity: "High"
-     message: "Found usage of `eval()` in TypeScript."
-     query: |
-        (call_expression
-            function: (identifier) @func_name
-            (#eq? @func_name "eval")
-        ) @issue
+  - id: "hardcoded-api-key"
+    languages: ["javascript", "typescript", "tsx"]
+    severity: "Critical"
+    message: "Hardcoded API key detected. Move this to an environment variable (.env)."
+    query: |
+      (
+        (string) @issue
+        (#match? @issue "(?i)(sk_live_[0-9a-zA-Z]{24,}|AKIA[0-9A-Z]{16})")
+      )
+
+  - id: "sql-injection-template"
+    languages: ["javascript", "typescript", "tsx"]
+    severity: "Critical"
+    message: "Potential SQL Injection. Do not use template strings inside db.query(). Use parameterized queries instead."
+    query: |
+      (call_expression
+        function: (member_expression property: (property_identifier) @method (#match? @method "^(query|execute)$"))
+        arguments: (arguments (template_string (template_substitution)))
+      ) @issue
+
+  - id: "hardcoded-jwt-secret"
+    languages: ["javascript", "typescript", "tsx"]
+    severity: "High"
+    message: "Hardcoded JWT secret. If this code is exposed, attackers can forge admin tokens."
+    query: |
+      (call_expression
+        function: (member_expression object: (identifier) @obj (#eq? @obj "jwt") property: (property_identifier) @prop (#eq? @prop "sign"))
+        arguments: (arguments (_) (string) @issue)
+      )
+
+  - id: "express-open-cors"
+    languages: ["javascript", "typescript", "tsx"]
+    severity: "Medium"
+    message: "Open CORS policy. Using origin: '*' allows any website to make requests to your API."
+    query: |
+      (call_expression
+        function: (identifier) @func (#eq? @func "cors")
+        arguments: (arguments
+          (object
+            (pair
+              key: (property_identifier) @key (#eq? @key "origin")
+              value: (string) @val (#eq? @val "\"*\"")
+            )
+          )
+        )
+      ) @issue
+
+  - id: "react-dangerously-set-inner-html"
+    languages: ["tsx"]
+    severity: "High"
+    message: "Usage of dangerouslySetInnerHTML detected. If user input flows here, it causes an XSS vulnerability."
+    query: |
+      (jsx_attribute
+        (property_identifier) @prop (#eq? @prop "dangerouslySetInnerHTML")
+      ) @issue
+
+  - id: "plaintext-password-check"
+    languages: ["javascript", "typescript", "tsx"]
+    severity: "Critical"
+    message: "Plaintext password comparison detected. Use bcrypt.compare() instead of '==='."
+    # We match the entire binary expression, and then check its text for both 'password' and '==='
+    query: |
+      (
+        (binary_expression) @issue
+        (#match? @issue "(?i)password")
+        (#match? @issue "===")
+      )

@@ -1,0 +1,77 @@
+name: Release
+
+# Only trigger this workflow when we push a tag like "v1.0.0"
+on:
+  push:
+    tags:
+      - 'v*'
+
+# GitHub needs permission to upload files to the Releases page
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload:
+    name: Build for ${{ matrix.os }}
+    # The 'matrix' lets us run this exact same job on 4 different operating systems at once!
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # 1. Linux (x86_64)
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: vibeguard
+            asset_name: vibeguard-linux-x64
+            
+          # 2. Mac Intel (x86_64)
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: vibeguard
+            asset_name: vibeguard-macos-x64
+            
+          # 3. Mac Apple Silicon (M1/M2/M3)
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: vibeguard
+            asset_name: vibeguard-macos-arm64
+            
+          # 4. Windows (x86_64)
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: vibeguard.exe
+            asset_name: vibeguard-windows-x64.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Install the Rust compiler on the cloud machine
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # Build the project in ultra-fast Release mode for the specific OS
+      - name: Build release binary
+        run: cargo build --release --target ${{ matrix.target }}
+
+      # Rename the compiled binary to our custom asset name (Mac/Linux)
+      - name: Prepare asset (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mv target/${{ matrix.target }}/release/${{ matrix.artifact_name }} ./${{ matrix.asset_name }}
+
+      # Rename the compiled binary to our custom asset name (Windows uses PowerShell)
+      - name: Prepare asset (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mv target/${{ matrix.target }}/release/${{ matrix.artifact_name }} ./${{ matrix.asset_name }}
+
+      # Upload the renamed binary to the GitHub Release page!
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./${{ matrix.asset_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,21 +1,30 @@
-use tree_sitter::{Query, QueryCursor, Language, Tree};
+use crate::analyzer::Issue;
 use std::collections::HashSet;
 use std::path::PathBuf;
-use crate::analyzer::Issue;
 use streaming_iterator::StreamingIterator;
+use tree_sitter::{Language, Query, QueryCursor, Tree};
 
-pub fn check_sql_taint(source_code: &str, tree: &Tree, file_path: &PathBuf, language: Language) -> Vec<Issue> {
+pub fn check_sql_taint(
+    source_code: &str,
+    tree: &Tree,
+    file_path: &PathBuf,
+    language: Language,
+) -> Vec<Issue> {
     let mut issues = Vec::new();
-    
+
     let mut tainted_vars: HashSet<String> = HashSet::new();
 
     // We look for any variable declaration
-    let source_query = Query::new(&language, r#"
+    let source_query = Query::new(
+        &language,
+        r#"
         (variable_declarator
             name: (identifier) @var_name
             value: (_) @var_value
         )
-    "#).expect("Failed to compile source query");
+    "#,
+    )
+    .expect("Failed to compile source query");
 
     let mut cursor = QueryCursor::new();
     let mut matches = cursor.matches(&source_query, tree.root_node(), source_code.as_bytes());
@@ -33,7 +42,7 @@ pub fn check_sql_taint(source_code: &str, tree: &Tree, file_path: &PathBuf, lang
             }
         }
 
-        // TAINT LOGIC: If the value string contains "req.query" or "req.body", 
+        // TAINT LOGIC: If the value string contains "req.query" or "req.body",
         // we consider the variable name tainted!
         if var_value_text.contains("req.query") || var_value_text.contains("req.body") {
             tainted_vars.insert(var_name.to_string());
@@ -44,14 +53,18 @@ pub fn check_sql_taint(source_code: &str, tree: &Tree, file_path: &PathBuf, lang
     // PASS 2: FIND SINKS (Database Execution)
     // ==========================================
     // We look for db.query(arg)
-    let sink_query = Query::new(&language, r#"
+    let sink_query = Query::new(
+        &language,
+        r#"
         (call_expression
             function: (member_expression
                 property: (property_identifier) @method_name (#eq? @method_name "query")
             )
             arguments: (arguments (identifier) @arg_name)
         ) @issue_node
-    "#).expect("Failed to compile sink query");
+    "#,
+    )
+    .expect("Failed to compile sink query");
 
     let mut cursor2 = QueryCursor::new();
     let mut matches2 = cursor2.matches(&sink_query, tree.root_node(), source_code.as_bytes());
