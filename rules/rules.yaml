@@ -66,3 +66,11 @@ rules:
         (#match? @issue "(?i)password")
         (#match? @issue "===")
       )
+      
+  - id: "insecure-eval"
+    languages: ["javascript", "typescript", "tsx"]
+    severity: "Critical"
+    message: "eval() executes arbitrary strings as code and is a primary XSS vector."
+    query: |
+        (call_expression
+        function: (identifier) @func (

@@ -25,16 +25,21 @@ enum Commands {
 
         #[arg(short, long)]
         json: bool,
+        
+        #[arg(long)]
+        ai: bool,
     },
     Mcp,
     Install,
+    Rules,
+    Version,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Scan { path, json } => {
+        Commands::Scan { path, json, ai } => {
             let start_time = std::time::Instant::now();
             let all_issues = run_scan(path);
             let duration = start_time.elapsed();
@@ -47,9 +52,9 @@ fn main() -> Result<()> {
                 println!("\n=== SCAN COMPLETE IN {:?} ===", duration);
 
                 if all_issues.is_empty() {
-                    println!("✅ No vulnerabilities found!");
+                    println!("No vulnerabilities found!");
                 } else {
-                    println!("🚨 Found {} total issues:\n", all_issues.len());
+                    println!("Found {} total issues:\n", all_issues.len());
                     for issue in &all_issues {
                         println!(
                             "[{}] {} (Line {}): {}",
@@ -58,11 +63,15 @@ fn main() -> Result<()> {
                             issue.line,
                             issue.message
                         );
+                        if *ai {
+                            if let Some(guidance) = &issue.fix_guidance {
+                                println!("Fix: {}", guidance);
+                            }
+                        }
                     }
                 }
             }
 
-            // EXIT CODE LOGIC: If we found issues, exit with code 1 so Git blocks the commit!
             if !all_issues.is_empty() {
                 std::process::exit(1);
             }
@@ -72,7 +81,6 @@ fn main() -> Result<()> {
             run_mcp_server();
         }
 
-        // NEW INSTALL COMMAND
         Commands::Install => {
             let git_dir = std::path::Path::new(".git");
             if !git_dir.exists() {
@@ -99,7 +107,7 @@ fn main() -> Result<()> {
         exit 1
     fi
     
-    echo "✅ VibeGuard scan passed! Committing..."
+    echo "VibeGuard scan passed! Committing..."
     "#;
 
             // Write the file to .git/hooks/pre-commit
@@ -115,8 +123,25 @@ fn main() -> Result<()> {
             }
 
             println!(
-                "✅ VibeGuard pre-commit hook installed successfully at .git/hooks/pre-commit"
+                "VibeGuard pre-commit hook installed successfully at .git/hooks/pre-commit"
             );
+        }
+        
+        Commands::Rules => {
+            let rules = rule_engine::load_rules();
+            println!("\nVibeGuard Security Rules ({} total):\n", rules.len());
+            for rule in &rules {
+                println!(
+                    " [{:>8}] {} - {}",
+                    rule.severity.to_uppercase(),
+                    rule.id,
+                    rule.message
+                );
+            }  
+            
+        }
+        Commands::Version => {
+            println!("VibeGuard {}", env!("CARGO_PKG_VERSION"));
         }
     }
 

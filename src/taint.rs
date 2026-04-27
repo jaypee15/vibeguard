@@ -91,6 +91,7 @@ pub fn check_sql_taint(
                     file: file_path.clone(),
                     line: node.start_position().row + 1,
                     message: format!("SQL Injection detected! Tainted variable '{}' flows directly into a database query.", arg_name),
+                    fix_guidance: None,
                 });
             }
         }

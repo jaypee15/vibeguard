@@ -11,6 +11,7 @@ pub struct Issue {
     pub file: PathBuf,
     pub line: usize,
     pub message: String,
+    pub fix_guidance: Option<String>,
 }
 
 pub fn analyze_code(
@@ -40,11 +41,12 @@ pub fn analyze_code(
                     let node: Node = capture.node;
 
                     issues.push(Issue {
-                        rule_id: "insecure-eval".to_string(),
+                        rule_id: rule.id.clone(),
                         severity: rule.severity.clone(),
                         file: file_path.clone(),
                         line: node.start_position().row + 1,
                         message: rule.message.clone(),
+                        fix_guidance: rule.fix_guidance.clone(),
                     });
                 }
             }

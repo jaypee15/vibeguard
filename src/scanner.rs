@@ -47,6 +47,7 @@ pub fn run_scan(path: &str) -> Vec<Issue> {
                         tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into(),
                     ),
                     "tsx" => ("typescript", tree_sitter_typescript::LANGUAGE_TSX.into()),
+                    "py" => ("python", tree_sitter_python::LANGUAGE.into()),
                     _ => return Vec::new(),
                 };
                 let applicable_rules: Vec<_> = all_rules
@@ -65,8 +66,12 @@ pub fn run_scan(path: &str) -> Vec<Issue> {
                                 &applicable_rules,
                                 ts_language.clone(),
                             );
-                            let taint_issues = check_sql_taint(&content, &tree, file, ts_language);
-                            file_issues.extend(taint_issues);
+                            
+                            if lang_name != "python" {
+                                let taint_issues = check_sql_taint(&content, &tree, file, ts_language);
+                                file_issues.extend(taint_issues);
+                            }
+                
                         }
                     }
                 }

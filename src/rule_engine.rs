@@ -7,6 +7,7 @@ pub struct Rule {
     pub severity: String,
     pub message: String,
     pub query: String,
+    pub fix_guidance: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
